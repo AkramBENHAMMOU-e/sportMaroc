@@ -49,23 +49,27 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  // Adaptations pour Vercel - utilisation d'environnements
+  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
+  const isDev = process.env.NODE_ENV === 'development' || app.get("env") === "development";
+
+  if (isDev && !isVercel) {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "localhost",
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // Définir le port approprié pour Vercel ou développement local
+  const port = process.env.PORT || 5000;
+  if (!isVercel) {
+    server.listen({
+      port,
+      host: "0.0.0.0", // Utilisez 0.0.0.0 au lieu de localhost pour permettre des connexions externes
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  }
+
+  // Pour Vercel serverless
+  export default app;
 })();
